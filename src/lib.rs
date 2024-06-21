@@ -213,6 +213,19 @@ pub struct CopyOperation {
 
 impl_display!(CopyOperation);
 
+/// JSON Patch 'add_or_replace' operation representation
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+pub struct AddOrReplaceOperation {
+    /// JSON-Pointer value that references a location
+    #[cfg_attr(feature = "utoipa", schema(value_type = String))]
+    pub path: Pointer,
+    /// Value to test against.
+    pub value: Value,
+}
+
+impl_display!(AddOrReplaceOperation);
+
 /// JSON Patch 'test' operation representation
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -243,6 +256,8 @@ pub enum PatchOperation {
     Move(MoveOperation),
     /// 'copy' operation
     Copy(CopyOperation),
+    /// 'add_or_replace' operation
+    AddOrReplace(AddOrReplaceOperation),
     /// 'test' operation
     Test(TestOperation),
 }
@@ -258,6 +273,7 @@ impl PatchOperation {
             Self::Replace(op) => &op.path,
             Self::Move(op) => &op.path,
             Self::Copy(op) => &op.path,
+            Self::AddOrReplace(op) => &op.path,
             Self::Test(op) => &op.path,
         }
     }
@@ -603,6 +619,10 @@ fn apply_patches(
                         }),
                     })
                 }
+            }
+            PatchOperation::AddOrReplace(ref op) => {
+                test(doc, &op.path, &op.value)
+                    .map_err(|e| translate_error(e, operation, &op.path))?;
             }
             PatchOperation::Test(ref op) => {
                 test(doc, &op.path, &op.value)
