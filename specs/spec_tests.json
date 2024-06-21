@@ -227,8 +227,7 @@
     "expected": {
       "foo": "bar",
       "child": {
-        "grandchild": {
-        }
+        "grandchild": {}
       }
     }
   },
@@ -338,6 +337,41 @@
           "def"
         ]
       ]
+    }
+  },
+  {
+    "comment": "A.17. Add replacing a nonexistent value",
+    "doc": {
+      "foo": "bar"
+    },
+    "patch": [
+      {
+        "op": "addorreplace",
+        "path": "/baz",
+        "value": "qux"
+      }
+    ],
+    "expected": {
+      "foo": "bar",
+      "baz": "qux"
+    }
+  },
+  {
+    "comment": "A.18. Add replacing an existing value",
+    "doc": {
+      "foo": "bar",
+      "baz": "qux"
+    },
+    "patch": [
+      {
+        "op": "addorreplace",
+        "path": "/baz",
+        "value": "quux"
+      }
+    ],
+    "expected": {
+      "foo": "bar",
+      "baz": "quux"
     }
   }
 ]

@@ -427,6 +427,20 @@ fn copy(doc: &mut Value, from: &str, path: &str) -> Result<Option<Value>, PatchE
     add(doc, path, source)
 }
 
+fn add_or_replace(
+    doc: &mut Value,
+    path: &str,
+    value: Value,
+) -> Result<Option<Value>, PatchErrorKind> {
+    let path_exists = doc.pointer(path).map_or_else(|| false, |v| true);
+    if path_exists {
+        let val = replace(doc, path, value).ok();
+        Ok(val)
+    } else {
+        add(doc, path, value)
+    }
+}
+
 fn test(doc: &Value, path: &str, expected: &Value) -> Result<(), PatchErrorKind> {
     let target = doc.pointer(path).ok_or(PatchErrorKind::InvalidPointer)?;
     if *target == *expected {
@@ -621,8 +635,19 @@ fn apply_patches(
                 }
             }
             PatchOperation::AddOrReplace(ref op) => {
-                test(doc, &op.path, &op.value)
+                let prev = add_or_replace(doc, &op.path, op.value.clone())
                     .map_err(|e| translate_error(e, operation, &op.path))?;
+                if let Some(&mut ref mut undo_stack) = undo_stack {
+                    undo_stack.push(match prev {
+                        None => PatchOperation::Remove(RemoveOperation {
+                            path: op.path.clone(),
+                        }),
+                        Some(v) => PatchOperation::Add(AddOperation {
+                            path: op.path.clone(),
+                            value: v,
+                        }),
+                    })
+                }
             }
             PatchOperation::Test(ref op) => {
                 test(doc, &op.path, &op.value)
