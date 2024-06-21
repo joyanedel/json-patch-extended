@@ -340,13 +340,13 @@
     }
   },
   {
-    "comment": "A.17. Add replacing a nonexistent value",
+    "comment": "A.17. Upsert a nonexistent value",
     "doc": {
       "foo": "bar"
     },
     "patch": [
       {
-        "op": "addorreplace",
+        "op": "upsert",
         "path": "/baz",
         "value": "qux"
       }
@@ -357,14 +357,14 @@
     }
   },
   {
-    "comment": "A.18. Add replacing an existing value",
+    "comment": "A.18. Upsert an existing value",
     "doc": {
       "foo": "bar",
       "baz": "qux"
     },
     "patch": [
       {
-        "op": "addorreplace",
+        "op": "upsert",
         "path": "/baz",
         "value": "quux"
       }

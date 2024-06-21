@@ -216,7 +216,7 @@ impl_display!(CopyOperation);
 /// JSON Patch 'add_or_replace' operation representation
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-pub struct AddOrReplaceOperation {
+pub struct UpsertOperation {
     /// JSON-Pointer value that references a location
     #[cfg_attr(feature = "utoipa", schema(value_type = String))]
     pub path: Pointer,
@@ -224,7 +224,7 @@ pub struct AddOrReplaceOperation {
     pub value: Value,
 }
 
-impl_display!(AddOrReplaceOperation);
+impl_display!(UpsertOperation);
 
 /// JSON Patch 'test' operation representation
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -256,8 +256,8 @@ pub enum PatchOperation {
     Move(MoveOperation),
     /// 'copy' operation
     Copy(CopyOperation),
-    /// 'add_or_replace' operation
-    AddOrReplace(AddOrReplaceOperation),
+    /// 'upsert' operation
+    Upsert(UpsertOperation),
     /// 'test' operation
     Test(TestOperation),
 }
@@ -273,7 +273,7 @@ impl PatchOperation {
             Self::Replace(op) => &op.path,
             Self::Move(op) => &op.path,
             Self::Copy(op) => &op.path,
-            Self::AddOrReplace(op) => &op.path,
+            Self::Upsert(op) => &op.path,
             Self::Test(op) => &op.path,
         }
     }
@@ -427,12 +427,8 @@ fn copy(doc: &mut Value, from: &str, path: &str) -> Result<Option<Value>, PatchE
     add(doc, path, source)
 }
 
-fn add_or_replace(
-    doc: &mut Value,
-    path: &str,
-    value: Value,
-) -> Result<Option<Value>, PatchErrorKind> {
-    let path_exists = doc.pointer(path).map_or_else(|| false, |v| true);
+fn upsert(doc: &mut Value, path: &str, value: Value) -> Result<Option<Value>, PatchErrorKind> {
+    let path_exists = doc.pointer(path).map_or_else(|| false, |_| true);
     if path_exists {
         let val = replace(doc, path, value).ok();
         Ok(val)
@@ -634,8 +630,8 @@ fn apply_patches(
                     })
                 }
             }
-            PatchOperation::AddOrReplace(ref op) => {
-                let prev = add_or_replace(doc, &op.path, op.value.clone())
+            PatchOperation::Upsert(ref op) => {
+                let prev = upsert(doc, &op.path, op.value.clone())
                     .map_err(|e| translate_error(e, operation, &op.path))?;
                 if let Some(&mut ref mut undo_stack) = undo_stack {
                     undo_stack.push(match prev {
